@@ -1,0 +1,326 @@
+1. Write a Python program to read a Hadoop configuration file and display the core components of Hadoop.
+
+Configuration files are the files that are located in "tar.gz" like hadoop-env.sh,core-site.xml,hdfs-site.xml
+import xml.etree.ElementTree as ET
+
+def read_hadoop_configuration(file_path):
+    try:
+        tree = ET.parse(file_path)
+        root = tree.getroot()
+        core_components = []
+        for property_elem in root.findall(".//property"):
+            name_elem = property_elem.find("name")
+            value_elem = property_elem.find("value")
+            if name_elem is not None and value_elem is not None:
+                name = name_elem.text.strip()
+                value = value_elem.text.strip()
+                core_components.append((name, value))
+        return core_components
+    except Exception as e:
+        print("Error reading Hadoop configuration file:", e)
+        return []
+if __name__ == "__main__":
+    hadoop_config_file = "path_to_your_hadoop_config_file.xml"
+    core_components = read_hadoop_configuration(hadoop_config_file)
+    if core_components:
+        print("Core components of Hadoop:")
+        for name, value in core_components:
+            print(f"{name}: {value}")
+    else:
+        print("No core components found in the Hadoop configuration file.")
+
+2. Implement a Python function that calculates the total file size in a Hadoop Distributed File System (HDFS) directory.
+
+from hdfs import InsecureClient
+def calculate_total_file_size(hdfs_url, hdfs_directory):
+    try:
+        # Create an HDFS client
+        client = InsecureClient(hdfs_url)
+        # Get a list of all files in the specified directory and its subdirectories
+        all_files = client.list(hdfs_directory, status=True)
+        total_size = 0
+        # Sum up the size of all files in the directory
+        for file_info in all_files:
+            if file_info["type"] == "FILE":
+                total_size += file_info["length"]
+        # Convert the total size to a human-readable format (e.g., bytes, KB, MB, GB, etc.)
+        total_size = convert_to_human_readable(total_size)
+        return total_size
+    except Exception as e:
+        print("Error calculating total file size:", e)
+        return None
+def convert_to_human_readable(size_in_bytes):
+    units = ["B", "KB", "MB", "GB", "TB"]
+    i = 0
+    while size_in_bytes >= 1024 and i < len(units) - 1:
+        size_in_bytes /= 1024.0
+        i += 1
+    return f"{size_in_bytes:.2f} {units[i]}"
+if __name__ == "__main__":
+    # Replace the following values with your HDFS configuration
+    hdfs_url = "http://your_hdfs_host:50070"
+    hdfs_directory = "/your_hdfs_directory"
+    total_file_size = calculate_total_file_size(hdfs_url, hdfs_directory)
+    if total_file_size is not None:
+        print(f"Total file size in HDFS directory '{hdfs_directory}': {total_file_size}")
+
+3.Create a Python program that extracts and displays the top N most frequent words from a large text file using the MapReduce approach. 
+
+import re
+import collections
+import multiprocessing
+def map_phase(chunk):
+    word_counts = collections.Counter(re.findall(r'\w+', chunk.lower()))
+    return word_counts
+def reduce_phase(results):
+    final_word_counts = collections.Counter()
+    for word_count in results:
+        final_word_counts.update(word_count)
+    return final_word_counts
+def read_large_text_file(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return file.read()
+def get_top_n_words(file_path, n, chunk_size=10000):
+    text = read_large_text_file(file_path)
+    chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+    pool = multiprocessing.Pool()
+    mapped_results = pool.map(map_phase, chunks)
+    pool.close()
+    pool.join()
+    reduced_result = reduce_phase(mapped_results)
+    return reduced_result.most_common(n)
+if __name__ == "__main__":
+    file_path = "path_to_your_large_text_file.txt"  # Replace with your large text file path
+    top_n = 10  # Change this value to get the top N most frequent words
+    top_words = get_top_n_words(file_path, top_n)
+    print(f"Top {top_n} most frequent words:")
+    for word, count in top_words:
+        print(f"{word}: {count}")
+
+4. Write a Python script that checks the health status of the NameNode and DataNodes in a Hadoop cluster using Hadoop's REST API.
+
+import requests
+def check_namenode_health(nn_url):
+    try:
+        response = requests.get(f"{nn_url}/jmx?qry=Hadoop:service=NameNode,name=NameNodeStatus")
+        response_json = response.json()
+        return response_json["beans"][0]["State"] == "active"
+    except requests.RequestException as e:
+        print("Error checking NameNode health:", e)
+        return False
+    except (KeyError, IndexError) as e:
+        print("Error parsing response:", e)
+        return False
+def check_datanode_health(dn_url):
+    try:
+        response = requests.get(f"{dn_url}/jmx?qry=Hadoop:service=DataNode,name=FSDatasetState")
+        response_json = response.json()
+        return response_json["beans"][0]["NumLiveDataNodes"] > 0
+    except requests.RequestException as e:
+        print("Error checking DataNode health:", e)
+        return False
+    except (KeyError, IndexError) as e:
+        print("Error parsing response:", e)
+        return False
+if __name__ == "__main__":
+    # Replace these URLs with your Hadoop cluster's ResourceManager and DataNode URLs
+    namenode_url = "http://your_namenode_host:50070"
+    datanode_url = "http://your_datanode_host:50075"
+    namenode_health_status = check_namenode_health(namenode_url)
+    datanode_health_status = check_datanode_health(datanode_url)
+    print("NameNode health status:", "Active" if namenode_health_status else "Inactive")
+    print("DataNode health status:", "Healthy" if datanode_health_status else "Unhealthy")
+
+5. Develop a Python program that lists all the files and directories in a specific HDFS path
+
+from hdfs import InsecureClient
+def list_hdfs_path(hdfs_url, hdfs_path):
+    try:
+        # Create an HDFS client
+        client = InsecureClient(hdfs_url)
+        # Get a list of all files and directories in the specified HDFS path
+        file_status = client.list(hdfs_path, status=True)
+        # Separate files and directories
+        files = [entry['path'] for entry in file_status if entry['type'] == 'FILE']
+        directories = [entry['path'] for entry in file_status if entry['type'] == 'DIRECTORY']
+        return files, directories
+    except Exception as e:
+        print("Error listing HDFS path:", e)
+        return None, None
+if __name__ == "__main__":
+    # Replace the following values with your HDFS configuration
+    hdfs_url = "http://your_hdfs_host:50070"
+    hdfs_path = "/your_hdfs_directory"
+    files, directories = list_hdfs_path(hdfs_url, hdfs_path)
+    if files is not None and directories is not None:
+        print(f"Files in HDFS path '{hdfs_path}':")
+        for file in files:
+            print(file)
+        print(f"\nDirectories in HDFS path '{hdfs_path}':")
+        for directory in directories:
+            print(directory)
+    else:
+        print("Error listing HDFS path. Please check your HDFS configuration.")
+
+6. Implement a Python program that analyzes the storage utilization of DataNodes in a Hadoop cluster and identifies the nodes with the highest and lowest storage capacities.
+
+import requests
+def get_datanode_info(hdfs_url):
+    try:
+        response = requests.get(f"{hdfs_url}/jmx?qry=Hadoop:service=DataNode,name=DataNodeInfo")
+        response_json = response.json()
+        datanode_info = response_json["beans"][0]
+        return datanode_info
+    except requests.RequestException as e:
+        print("Error getting DataNode information:", e)
+        return None
+    except (KeyError, IndexError) as e:
+        print("Error parsing response:", e)
+        return None
+def analyze_storage_utilization(datanode_info):
+    if not datanode_info:
+        return None, None
+    data_nodes = datanode_info["LiveNodes"]
+    sorted_data_nodes = sorted(data_nodes.values(), key=lambda node: node["capacity"], reverse=True)
+    highest_storage_node = sorted_data_nodes[0]
+    lowest_storage_node = sorted_data_nodes[-1]
+    return highest_storage_node, lowest_storage_node
+if __name__ == "__main__":
+    # Replace the following value with your Hadoop cluster's ResourceManager URL
+    hdfs_url = "http://your_hdfs_host:50070"
+    datanode_info = get_datanode_info(hdfs_url)
+    highest_storage_node, lowest_storage_node = analyze_storage_utilization(datanode_info)
+    if highest_storage_node is not None and lowest_storage_node is not None:
+        print("DataNode with the highest storage capacity:")
+        print(f"Host: {highest_storage_node['name']}")
+        print(f"Capacity: {highest_storage_node['capacity'] / (1024 ** 4):.2f} TB")  # Convert to TB
+        print("\nDataNode with the lowest storage capacity:")
+        print(f"Host: {lowest_storage_node['name']}")
+        print(f"Capacity: {lowest_storage_node['capacity'] / (1024 ** 4):.2f} TB")  # Convert to TB
+    else:
+        print("Error analyzing storage utilization. Please check your Hadoop cluster configuration.")
+
+8. Create a Python script that interacts with YARN's ResourceManager API to submit a Hadoop job, set resource requirements, and track resource usage during job execution.
+
+import requests
+import time
+def submit_hadoop_job(resource_manager_url, jar_path, main_class, args, job_name, num_containers, container_memory, container_vcores):
+    try:
+        # Submit the Hadoop job to YARN ResourceManager
+        data = {
+            "application-id": "MyHadoopJob",
+            "application-name": job_name,
+            "am-container-spec": {
+                "commands": {
+                    "command": f"java -Xmx{container_memory}M {main_class} {' '.join(args)}"
+                },
+                "resource": {
+                    "memory": container_memory,
+                    "vCores": container_vcores
+                }
+            },
+            "unmanaged-AM": False,
+            "max-app-attempts": 1,
+            "resource": {
+                "memory": container_memory,
+                "vCores": container_vcores,
+                "instances": num_containers
+            },
+            "application-type": "MAPREDUCE",
+            "keep-containers-across-application-attempts": False,
+            "application-tags": "hadoop_job"
+        }
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(f"{resource_manager_url}/ws/v1/cluster/apps", json=data, headers=headers)
+        if response.status_code == 202:
+            print("Hadoop job submitted successfully.")
+            return response.json()["application-id"]
+        else:
+            print("Failed to submit Hadoop job.")
+            print("Response:", response.json())
+            return None
+    except requests.RequestException as e:
+        print("Error submitting Hadoop job:", e)
+        return None
+def get_resource_usage(resource_manager_url, app_id):
+    try:
+        # Get application details from YARN ResourceManager
+        response = requests.get(f"{resource_manager_url}/ws/v1/cluster/apps/{app_id}")
+        if response.status_code == 200:
+            data = response.json()
+            if "app" in data and "state" in data["app"]:
+                state = data["app"]["state"]
+                if state == "FINISHED":
+                    print("Hadoop job completed.")
+                    return None
+                if "allocatedMB" in data["app"]["amResourceUsage"] and "allocatedVCores" in data["app"]["amResourceUsage"]:
+                    allocated_memory = data["app"]["amResourceUsage"]["allocatedMB"]
+                    allocated_vcores = data["app"]["amResourceUsage"]["allocatedVCores"]
+                    print(f"Application ID: {app_id}, State: {state}, Allocated Memory: {allocated_memory} MB, Allocated Vcores: {allocated_vcores}")
+                else:
+                    print("Resource usage data not available yet. Please wait.")
+            else:
+                print("Application details not found.")
+        else:
+            print("Failed to fetch application details.")
+            print("Response:", response.json())
+    except requests.RequestException as e:
+        print("Error fetching application details:", e)
+if __name__ == "__main__":
+    # Replace the following value with your YARN ResourceManager URL
+    resource_manager_url = "http://your_resource_manager_host:8088"
+    # Hadoop job details
+    jar_path = "path_to_your_hadoop_jar_file.jar"
+    main_class = "com.example.HadoopJobMain"
+    args = ["arg1", "arg2", "arg3"]
+    job_name = "MyHadoopJob"
+    num_containers = 1
+    container_memory = 1024  # MB
+    container_vcores = 1
+    app_id = submit_hadoop_job(resource_manager_url, jar_path, main_class, args, job_name, num_containers, container_memory, container_vcores)
+    if app_id:
+        while True:
+            get_resource_usage(resource_manager_url, app_id)
+            time.sleep(10)  # Check resource usage every 10 seconds until the job completes
+
+9. Write a Python program that compares the performance of a MapReduce job with different input split sizes, showcasing the impact on overall job execution time.
+
+import os
+import subprocess
+import time
+def run_mapreduce_job(input_path, output_path, mapper_script, reducer_script, input_split_size):
+    try:
+        # Set the HADOOP_CMD environment variable to the path of your Hadoop binary
+        # Example: "/usr/local/hadoop/bin/hadoop"
+        hadoop_cmd = os.environ.get('HADOOP_CMD', 'hadoop')
+        # Configure the input split size
+        hadoop_cmd += f" -D mapreduce.input.fileinputformat.split.minsize={input_split_size} "
+        # Execute the MapReduce job
+        cmd = (
+            f"{hadoop_cmd} jar /path/to/hadoop-streaming.jar "
+            f"-input {input_path} -output {output_path} "
+            f"-mapper {mapper_script} -reducer {reducer_script}"
+        )
+        start_time = time.time()
+        subprocess.check_call(cmd, shell=True)
+        end_time = time.time()
+        return end_time - start_time
+    except subprocess.CalledProcessError as e:
+        print("Error running MapReduce job:", e)
+        return None
+if __name__ == "__main__":
+    # Replace the following paths and filenames with your specific data and scripts
+    input_path = "/path/to/input_data"
+    output_path = "/path/to/output_data"
+    mapper_script = "/path/to/mapper.py"
+    reducer_script = "/path/to/reducer.py"
+    # Define different input split sizes to test
+    input_split_sizes = [64 * 1024 * 1024, 128 * 1024 * 1024, 256 * 1024 * 1024]  # In bytes
+    for split_size in input_split_sizes:
+        execution_time = run_mapreduce_job(input_path, output_path, mapper_script, reducer_script, split_size)
+        if execution_time is not None:
+            print(f"Input Split Size: {split_size / (1024 * 1024)} MB")
+            print(f"Execution Time: {execution_time:.2f} seconds")
+            print("------")
+        else:
+            print("Error executing the MapReduce job.")
