@@ -1,0 +1,237 @@
+1.Setting up a Kafka Producer:
+   a) Write a Python program to create a Kafka producer.
+   b) Configure the producer to connect to a Kafka cluster.
+   c) Implement logic to send messages to a Kafka topic.
+
+pip install kafka-python
+from kafka import KafkaProducer
+def create_kafka_producer(bootstrap_servers):
+    # Create a Kafka producer instance
+    producer = KafkaProducer(
+        bootstrap_servers=bootstrap_servers,
+        # The value serializer determines how messages are serialized before sending to Kafka
+        value_serializer=lambda v: str(v).encode('utf-8')
+    )
+    return producer
+def send_messages(producer, topic):
+    try:
+        # Implement your logic to send messages to the Kafka topic
+        for i in range(10):  # Send 10 sample messages
+            message = f"Message {i}"
+            producer.send(topic, value=message)
+            print(f"Sent: {message}")
+        producer.flush()  # Ensure all messages are sent
+        print("All messages sent successfully.")
+    except Exception as e:
+        print(f"Error sending messages: {e}")
+    finally:
+        producer.close()
+if __name__ == "__main__":
+    # Kafka cluster address, replace with your broker addresses
+    bootstrap_servers = 'localhost:9092'
+    # Kafka topic to which messages will be sent
+    topic = 'your_topic_name'
+    # Create the Kafka producer
+    producer = create_kafka_producer(bootstrap_servers)
+    # Send messages to the Kafka topic
+    send_messages(producer, topic)
+
+2.Setting up a Kafka Consumer:
+   a) Write a Python program to create a Kafka consumer.
+   b) Configure the consumer to connect to a Kafka cluster.
+   c) Implement logic to consume messages from a Kafka topic.
+
+pip install kafka-python
+from kafka import KafkaConsumer
+def create_kafka_consumer(bootstrap_servers, topic):
+    # Create a Kafka consumer instance
+    consumer = KafkaConsumer(
+        topic,
+        bootstrap_servers=bootstrap_servers,
+        # The value deserializer determines how messages are deserialized when consumed
+        value_deserializer=lambda v: v.decode('utf-8')
+    )
+    return consumer
+def consume_messages(consumer):
+    try:
+        # Implement your logic to consume messages from the Kafka topic
+        for message in consumer:
+            print(f"Received: {message.value}")
+    except KeyboardInterrupt:
+        print("Consumer interrupted.")
+    except Exception as e:
+        print(f"Error consuming messages: {e}")
+    finally:
+        consumer.close()
+if __name__ == "__main__":
+    # Kafka cluster address, replace with your broker addresses
+    bootstrap_servers = 'localhost:9092'
+    # Kafka topic from which messages will be consumed
+    topic = 'your_topic_name'
+    # Create the Kafka consumer
+    consumer = create_kafka_consumer(bootstrap_servers, topic)
+    # Consume messages from the Kafka topic
+    consume_messages(consumer)
+
+3. Creating and Managing Kafka Topics:
+   a) Write a Python program to create a new Kafka topic.
+   b) Implement functionality to list existing topics.
+   c) Develop logic to delete an existing Kafka topic.
+
+pip install kafka-python
+from kafka import KafkaAdminClient, NewTopic
+from kafka.errors import TopicAlreadyExistsError, UnknownTopicOrPartitionError
+def create_topic(admin_client, topic_name, partitions=1, replication_factor=1):
+    # Create a new Kafka topic
+    new_topic = NewTopic(name=topic_name, num_partitions=partitions, replication_factor=replication_factor)
+    try:
+        admin_client.create_topics(new_topics=[new_topic])
+        print(f"Topic '{topic_name}' created successfully.")
+    except TopicAlreadyExistsError:
+        print(f"Topic '{topic_name}' already exists.")
+    except Exception as e:
+        print(f"Error creating topic: {e}")
+def list_topics(admin_client):
+    # List existing topics
+    try:
+        topic_metadata = admin_client.list_topics()
+        print("Existing topics:")
+        for topic in topic_metadata.topics:
+            print(topic)
+    except Exception as e:
+        print(f"Error listing topics: {e}")
+def delete_topic(admin_client, topic_name):
+    # Delete an existing Kafka topic
+    try:
+        admin_client.delete_topics(topics=[topic_name])
+        print(f"Topic '{topic_name}' deleted successfully.")
+    except UnknownTopicOrPartitionError:
+        print(f"Topic '{topic_name}' does not exist.")
+    except Exception as e:
+        print(f"Error deleting topic: {e}")
+if __name__ == "__main__":
+    # Kafka cluster address, replace with your broker addresses
+    bootstrap_servers = 'localhost:9092'
+    # Create a Kafka admin client
+    admin_client = KafkaAdminClient(bootstrap_servers=bootstrap_servers)
+    # Example usage:
+    # Create a new topic with name 'test_topic', 3 partitions, and replication factor 1
+    create_topic(admin_client, topic_name='test_topic', partitions=3, replication_factor=1)
+    # List existing topics
+    list_topics(admin_client)
+    # Delete an existing topic named 'test_topic'
+    delete_topic(admin_client, topic_name='test_topic')
+  
+4. Producing and Consuming Messages:
+   a) Write a Python program to produce messages to a Kafka topic.
+   b) Implement logic to consume messages from the same Kafka topic.
+   c) Test the end-to-end flow of message production and consumption.
+
+kafka_Producer.py
+from kafka import KafkaProducer
+def create_kafka_producer(bootstrap_servers):
+    # Create a Kafka producer instance
+    producer = KafkaProducer(
+        bootstrap_servers=bootstrap_servers,
+        # The value serializer determines how messages are serialized before sending to Kafka
+        value_serializer=lambda v: str(v).encode('utf-8')
+    )
+    return producer
+def send_messages(producer, topic):
+    try:
+        # Implement your logic to send messages to the Kafka topic
+        for i in range(10):  # Send 10 sample messages
+            message = f"Message {i}"
+            producer.send(topic, value=message)
+            print(f"Sent: {message}")
+        producer.flush()  # Ensure all messages are sent
+        print("All messages sent successfully.")
+    except Exception as e:
+        print(f"Error sending messages: {e}")
+    finally:
+        producer.close()
+if __name__ == "__main__":
+    # Kafka cluster address, replace with your broker addresses
+    bootstrap_servers = 'localhost:9092'
+    # Kafka topic to which messages will be sent
+    topic = 'your_topic_name'
+    # Create the Kafka producer
+    producer = create_kafka_producer(bootstrap_servers)
+    # Send messages to the Kafka topic
+    send_messages(producer, topic)
+
+kafka_consumer.py
+from kafka import KafkaConsumer
+def create_kafka_consumer(bootstrap_servers, topic):
+    # Create a Kafka consumer instance
+    consumer = KafkaConsumer(
+        topic,
+        bootstrap_servers=bootstrap_servers,
+        # The value deserializer determines how messages are deserialized when consumed
+        value_deserializer=lambda v: v.decode('utf-8')
+    )
+    return consumer
+def consume_messages(consumer):
+    try:
+        # Implement your logic to consume messages from the Kafka topic
+        for message in consumer:
+            print(f"Received: {message.value}")
+    except KeyboardInterrupt:
+        print("Consumer interrupted.")
+    except Exception as e:
+        print(f"Error consuming messages: {e}")
+    finally:
+        consumer.close()
+if __name__ == "__main__":
+    # Kafka cluster address, replace with your broker addresses
+    bootstrap_servers = 'localhost:9092'
+    # Kafka topic from which messages will be consumed
+    topic = 'your_topic_name'
+    # Create the Kafka consumer
+    consumer = create_kafka_consumer(bootstrap_servers, topic)
+    # Consume messages from the Kafka topic
+    consume_messages(consumer)
+
+5.Working with Kafka Consumer Groups:
+   a) Write a Python program to create a Kafka consumer within a consumer group.
+   b) Implement logic to handle messages consumed by different consumers within the same group.
+   c) Observe the behavior of consumer group rebalancing when adding or removing consumers.
+
+kafka_consumer_group.py
+from kafka import KafkaConsumer, TopicPartition
+def create_kafka_consumer_group(bootstrap_servers, topic, group_id):
+    # Create a Kafka consumer instance with the specified group_id
+    consumer = KafkaConsumer(
+        group_id=group_id,
+        bootstrap_servers=bootstrap_servers,
+        # The value deserializer determines how messages are deserialized when consumed
+        value_deserializer=lambda v: v.decode('utf-8')
+    )    
+    # Assign the topic partitions to the consumer based on the group_id
+    partitions = consumer.partitions_for_topic(topic)
+    if partitions:
+        topic_partitions = [TopicPartition(topic, partition) for partition in partitions]
+        consumer.assign(topic_partitions)
+    return consumer
+def consume_messages(consumer):
+    try:
+        # Implement your logic to consume messages from the Kafka topic
+        for message in consumer:
+            print(f"Consumer: {consumer.config['group_id']}, Partition: {message.partition}, Offset: {message.offset}, Value: {message.value}")
+    except KeyboardInterrupt:
+        print("Consumer interrupted.")
+    except Exception as e:
+        print(f"Error consuming messages: {e}")
+    finally:
+        consumer.close()
+if __name__ == "__main__":
+    # Kafka cluster address, replace with your broker addresses
+    bootstrap_servers = 'localhost:9092'
+    # Kafka topic from which messages will be consumed
+    topic = 'your_topic_name'
+    # Consumer group ID
+    group_id = 'your_group_id'
+    # Create the Kafka consumer with the specified group_id
+    consumer = create_kafka_consumer_group(bootstrap_servers, topic, group_id)
+    # Consume messages from the Kafka topic
+    consume_messages(consumer)
